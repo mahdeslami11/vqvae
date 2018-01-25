@@ -10,8 +10,9 @@ This is a TensorFlow implementation of the [Vector Quantised-Variational AutoEnc
 Code is tested on TensorFlow version 1.4 for Python 3.6
 
 ## Simple test
-In this test, we generate 3-type wavs and each type has different style each other.
-See below generated examples for train
+<p>In this test, we generate 3-type wavs and each type has different style each other.</p>
+
+<p>See below generated examples for train.</p>
 <img src="results/type_1_1.png" />
 <img src="results/type_1_2.png" />
 <img src="results/type_2_1.png" />
@@ -19,7 +20,7 @@ See below generated examples for train
 <img src="results/type_3_1.png" />
 <img src="results/type_3_2.png" />
 
-Results
+<p>Results</p>
 <img src="results/test_source1.png" />
 <img src="results/test_source1_to_type2.png" />
 <img src="results/test_source1_to_type3.png" />
