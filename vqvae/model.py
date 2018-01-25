@@ -33,8 +33,7 @@ def create_embedding_table(name, shape):
     else:
         return create_variable(name, shape)
 
-
-
+    
 class VQVAE:
     def __init__(self,
                  batch_size=None, sample_size=None, q_factor=1, n_stack=2, max_dilation=10, K=512, D=128,
@@ -197,13 +196,6 @@ class VQVAE:
                     output_channel = output_channel // 2
                     var['enc_conv_stack'].append(current)
         return var, enc_param_scope
-
-    def wavenet_forward(self, padded_x, lc=None, gc=None):
-        if lc is not None:
-            paddings = tf.constant([[0, 0], [self.receptive_field - 1, 0], [0, 0]])
-            lc = tf.pad(self.lc, paddings, "CONSTANT")
-
-        return output
 
     def upsampling(self, z_q):
         dec_input = tf.expand_dims(z_q, -1)
