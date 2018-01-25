@@ -28,7 +28,7 @@ Code is tested on TensorFlow version 1.4 for Python 3.6
 <img src="results/test_source2_to_type1.png" />
 <img src="results/test_source2_to_type3.png" />
 
-You can find generated files in this test on <a href="./results">results</a> folder.
+Files generated in this test are on <a href="./results">results</a> folder.
 
 ## Voice conversion test
 This will be updated soon.
