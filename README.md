@@ -20,7 +20,7 @@ Code is tested on TensorFlow version 1.4 for Python 3.6
 <img src="results/type_3_1.png" />
 <img src="results/type_3_2.png" />
 
-<p>Results</p>
+### Results
 <img src="results/test_source1.png" />
 <img src="results/test_source1_to_type2.png" />
 <img src="results/test_source1_to_type3.png" />
