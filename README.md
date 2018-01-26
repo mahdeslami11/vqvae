@@ -7,7 +7,9 @@ This is a TensorFlow implementation of the [Vector Quantised-Variational AutoEnc
 - WaveNet which allows local conditioning
 
 ## Requirements
-Code is tested on TensorFlow version 1.4 for Python 3.6
+Code is tested on TensorFlow version 1.4 for Python 3.6.
+
+In addition, [librosa](https://github.com/librosa/librosa) must be installed for reading and writing audio.
 
 ## Simple test
 <p>In this test, we generate 3-type wavs and each type has different style each other.</p>
@@ -28,7 +30,7 @@ Code is tested on TensorFlow version 1.4 for Python 3.6
 <img src="results/test_source2_to_type1.png" />
 <img src="results/test_source2_to_type3.png" />
 
-Files generated in this test are on <a href="./results">results</a> folder.
+You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simple vq-vae test</a>  and the generated files are on <a href="./results">results</a> folder.
 
 ## Voice conversion test
 This will be updated soon.
