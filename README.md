@@ -30,7 +30,7 @@ In addition, [librosa](https://github.com/librosa/librosa) must be installed for
 <img src="results/test_source2_to_type1.png" />
 <img src="results/test_source2_to_type3.png" />
 
-You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simple vq-vae test</a>  and the generated files are on <a href="./results">results</a> folder.
+You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simple vq-vae test</a> and the generated files are on <a href="./results">results</a> folder.
 
 ## Voice conversion test
 This will be updated soon.

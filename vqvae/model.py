@@ -7,7 +7,8 @@ import math
 
 sys.path.append('../wavenet')
 from wavenet.model import WaveNetModel
-from utils import inv_mu_law_numpy, mu_law_numpy, mu_law, inv_mu_law
+from utils import inv_mu_law_numpy, mu_law_numpy
+from wavenet.ops import mu_law_encode as mu_law
 
 
 def create_variable(name, shape):
@@ -33,13 +34,39 @@ def create_embedding_table(name, shape):
     else:
         return create_variable(name, shape)
 
+def get_bilinear_filter(filter_shape, upscale_factor, name=None):
+    ##filter_shape is [width, height, num_in_channels, num_out_channels]
+    kernel_size = filter_shape[0]
+    ### Centre location of the filter for which value is calculated
+    if kernel_size % 2 == 1:
+        centre_location = upscale_factor - 1
+    else:
+        centre_location = upscale_factor - 0.5
+
+    bilinear = np.zeros([filter_shape[0], filter_shape[1]])
+    for x in range(filter_shape[0]):
+        for y in range(filter_shape[1]):
+            ##Interpolation Calculation
+            value = (1 - abs((x - centre_location)/ upscale_factor)) * (1 - abs((y - centre_location)/ upscale_factor))
+            bilinear[x, y] = value
+
+    weights = np.zeros(filter_shape)
+    for i in range(filter_shape[2]):
+        for j in range(filter_shape[3]):
+            weights[:, :, i, j] = bilinear
+    init = tf.constant_initializer(value=weights,
+                                   dtype=tf.float32)
+
+    bilinear_weights = tf.get_variable(name=name, initializer=init,
+                           shape=weights.shape)
+    return bilinear_weights    
     
 class VQVAE:
     def __init__(self,
                  batch_size=None, sample_size=None, q_factor=1, n_stack=2, max_dilation=10, K=512, D=128,
                  lr=0.001, use_gc=False, gc_cardinality=None, is_training=True, global_step=None,
                  scope='params', residual_channels=256, dilation_channels=512, skip_channels=256, use_biases=False,
-                upsampling_method='deconv'):
+                 upsampling_method='deconv', encoding_channels=[2, 4, 8, 16, 32, 1]):
 
         assert sample_size is not None
         assert q_factor == 1 or (q_factor % 2) == 0
@@ -60,6 +87,7 @@ class VQVAE:
 
         # encoding spec
         self.encode_level = 6
+        self.encoding_channels = encoding_channels
 
         # model spec
         self.upsampling_method = upsampling_method
@@ -74,12 +102,13 @@ class VQVAE:
             self.initialized = True
 
         # etc
+        self.drop_rate = 0.5
         self.global_step = global_step
         self.lr = lr
 
         
         with tf.variable_scope(scope) as params:
-            self.enc_var, self.enc_scope = self._encoder()
+            self.enc_var, self.enc_scope = self.create_encoder_variables()
             with tf.variable_scope('decoder') as dec_param_scope:
                 
                 self.deconv_var = self.create_deconv_variables()
@@ -97,13 +126,14 @@ class VQVAE:
                 self.dec_scope = dec_param_scope
                 
             with tf.variable_scope('embed'):
+                init = tf.truncated_normal_initializer(stddev=0.01)
+#                 init = tf.constant_initializer(value=np.random.random((self.K, self.D)), dtype=tf.float32)           
                 self.embeds = tf.get_variable(
                     'embedding', [self.K, self.D], dtype=tf.float32,
-                    initializer=tf.truncated_normal_initializer(stddev=0.1))        
+                    initializer=init)        
             
         self.param_scope = params
         self.saver = None
-        
         self.set_saver()
         
     def create_deconv_variables(self):
@@ -142,12 +172,13 @@ class VQVAE:
                     h *= upscale_per_step
 
                     kernel_size = 2*upscale_per_step - upscale_per_step%2
-
-                    layer['filter'] = create_variable('deconv_layer_filter', [kernel_size, 1, out_channel, in_channel])
+#                     layer['filter'] = create_variable('deconv_layer_filter', [kernel_size, 1, out_channel, in_channel])
+                    layer['filter'] = get_bilinear_filter([kernel_size, 1, out_channel, in_channel], 
+                                                          upscale_per_step, name='deconv_layer_filter')
                     layer['strides'] = [1, upscale_per_step, 1, 1]
-                    layer['shape'] = [1, h, width, out_channel]
+                    layer['shape'] = [self.batch_size, h, width, out_channel]
                     if self.use_biases:
-                        layer['bias'] = create_bias_variable('deconv_bias', [n_channel])
+                        layer['bias'] = create_bias_variable('deconv_bias', [out_channel])
                     var.append(layer)  
                     
                     in_channel = out_channel
@@ -168,41 +199,66 @@ class VQVAE:
 #             for name,var in save_vars.items():
 #                 print(name)
             self.saver = tf.train.Saver(var_list=save_vars, max_to_keep=10)
-            
-    def one_hot(self, ml_encoded):
-        return self.wavenet._one_hot(ml_encoded)
-    
-    def one_hot_gen(self, ml_encoded):
-        encoded = tf.one_hot(ml_encoded, self.quantization_channels)
-        encoded = tf.reshape(encoded, [-1, self.quantization_channels])
-        return encoded
 
     def _gc_embedding(self):
         return create_embedding_table('gc_embedding', [self.gc_cardinality, self.gc_cardinality])
     
-    def _encoder(self):
+    def create_encoder_variables(self):
         with tf.variable_scope('enc') as enc_param_scope:           
             var = dict()
 
             input_channel = 1
-            output_channel = 32
+            output_channel = self.encoding_channels
             
             var['enc_conv_stack'] = list()
             for i in range(self.encode_level):
                 with tf.variable_scope('encoder_conv_{}'.format(i)):
                     current = dict()
-                    current['filter'] = create_variable('filter', [4, 4, input_channel, output_channel])   
-                    input_channel = output_channel
-                    output_channel = output_channel // 2
+                    if i < self.q_factor:
+                        current['filter'] = create_variable('filter', [4, 4, input_channel, output_channel[i]]) 
+                    else:
+                        current['filter'] = create_variable('filter', [4, 1, input_channel, output_channel[i]])  
+                    if self.use_biases:
+                        current['bias'] = create_bias_variable('bias', [output_channel[i]])
+                    input_channel = output_channel[i]
                     var['enc_conv_stack'].append(current)
         return var, enc_param_scope
 
+    def encode(self, encoded_input_batch):
+        encoded_input_batch = tf.expand_dims(encoded_input_batch, -1)
+     
+        out = encoded_input_batch
+
+        for i, layer in enumerate(self.enc_var['enc_conv_stack']):
+            kernel = layer['filter']
+            if i < self.q_factor:
+                out = tf.nn.conv2d(out, kernel, [1, 2, 2, 1], padding='SAME')
+            else:
+                out = tf.nn.conv2d(out, kernel, [1, 2, 1, 1], padding='SAME')
+            
+            if self.use_biases:
+                out = tf.nn.bias_add(out, layer['bias'])
+
+            if i < (self.encode_level-1):
+                out = tf.nn.elu(out)
+#                 out = tf.layers.dropout(out, rate=self.drop_rate, training=self.is_training ,name='enc_dropout_%d' % (i))
+        
+        if self.encoding_channels[-1] > 1:
+            z_e = tf.reduce_sum(out, -1)
+        else:
+            z_e = tf.squeeze(out, axis=-1, name='encode_squeeze')
+            
+        z_e = tf.nn.tanh(z_e)
+
+        return z_e
+    
     def upsampling(self, z_q):
         dec_input = tf.expand_dims(z_q, -1)
+        initial = tf.image.resize_nearest_neighbor(dec_input, [self.sample_size, self.D])
+        initial = tf.squeeze(initial, axis=-1, name='dec_input_squeeze')        
         
         if self.deconv_var is not None:
-            for i in range(len(self.deconv_var)):
-                layer = self.deconv_var[i]
+            for i, layer in enumerate(self.deconv_var):
                 dec_input = tf.nn.conv2d_transpose(
                     dec_input,
                     layer['filter'],
@@ -212,40 +268,21 @@ class VQVAE:
                     data_format='NHWC',
                     name=None
                 )
+                
                 if self.use_biases:
-                    dec_input += layer['bias']
+                    dec_input = tf.nn.bias_add(dec_input, layer['bias'])
                 
                 if i < len(self.deconv_var)-1:
-                    dec_input = tf.nn.relu(dec_input)
+                    dec_input = tf.layers.batch_normalization(dec_input, training=self.is_training)
+                    dec_input = tf.nn.tanh(dec_input)
+#                     dec_input = tf.nn.elu(dec_input)
                 
             dec_input = tf.reduce_sum(dec_input, -1)
+            dec_input = tf.add(dec_input, initial)
         else:
-            dec_input = tf.image.resize_nearest_neighbor(dec_input, [self.sample_size, self.D])
-            dec_input = tf.squeeze(dec_input, axis=-1, name='dec_input_squeeze')
+            dec_input = initial
+            
         return dec_input
-
-    def encode(self, encoded_input_batch, dtype=tf.float32):
-        encoded_input_batch = tf.expand_dims(encoded_input_batch, -1)
-     
-        out = encoded_input_batch
-
-        for i in range(self.encode_level):
-            kernel = self.enc_var['enc_conv_stack'][i]['filter']
-
-            if i < self.q_factor:
-                out = tf.nn.conv2d(out, kernel, [1, 2, 2, 1], padding='SAME')
-            else:
-                out = tf.nn.conv2d(out, kernel, [1, 2, 1, 1], padding='SAME')
-
-            if i < (self.encode_level-1):
-                out = tf.nn.relu(out)
-        
-#         out = tf.layers.batch_normalization(out, training=self.is_training)
-        out = tf.nn.sigmoid(out)
-        # enc_shape = [self.batch_size, self.reduced_timestep, self.D]
-        z_e = tf.squeeze(out, axis=-1, name='encode_squeeze')       
-
-        return z_e
 
     def vq(self, z_e):
         _e = tf.reshape(self.embeds, [1, self.K, self.D])
@@ -277,9 +314,7 @@ class VQVAE:
             lc = self.upsampling(z_q)          
         return lc, gc
 
-    def create_model(self, padded_input, gc=None, fid=None):
-        if fid is not None:
-            fid = tf.Print(fid, [fid], message="fid:")
+    def create_model(self, padded_input, gc=None):
         with tf.variable_scope('forward'):
             
             padded_encoded_input, gc = self.preprocess(padded_input, gc=gc)
@@ -326,44 +361,53 @@ class VQVAE:
         operations.extend(self.wavenet.push_ops)
         
         waveform = [128] * (self.receptive_field - 2)
+        waveform = np.tile(waveform, (self.batch_size, 1))
         if seed is None:
-            seed = 128
+            seed = []
+            for i in range(self.batch_size):
+                _seed = np.random.randint(self.quantization_channels) if use_randomness else 128
+                seed.append([_seed])
             
-        waveform.append(seed)
+        waveform = np.hstack([waveform, seed])
 
-        for sample in waveform[:-1]:
-            lc_sample = np.zeros((1, 128))
-            sess.run(operations, feed_dict={sample_placeholder: [sample],
+        for i in range(waveform.shape[1]-1):
+            sample = waveform[:, i]
+            lc_sample = np.zeros((self.batch_size, 128))
+            sess.run(operations, feed_dict={sample_placeholder: sample,
                                                     lc_placeholder: lc_sample,
                                                     gc_placeholder: gc})
-        lc = lc.reshape(n_samples, -1)
+        
+        softmax_result = []
         for i in range(n_samples):
             if i > 0 and i % 10000 == 0:
                 print("Generating {} of {}.".format(i, n_samples))
                 sys.stdout.flush()
 
-            sample = waveform[-1]
-            lc_sample = lc[i, :].reshape(1, -1)
+            sample = waveform[:, -1]
+            lc_sample = lc[:, i, :].reshape(self.batch_size, -1)
             results = sess.run(operations, feed_dict={sample_placeholder: sample,
                                                               lc_placeholder: lc_sample,
                                                               gc_placeholder: gc})
+            
+            softmax_result.append(np.expand_dims(results[0], 1))
             if use_randomness:
-                sample = np.random.choice(np.arange(self.quantization_channels), p=results[0])
+                sample = []
+                for k in range(self.batch_size):
+                    _sample = np.random.choice(np.arange(self.quantization_channels), p=results[0][k,:])
+                    sample.append([_sample])
             else:
-                sample = np.argmax(results[0]).reshape(-1)
+                sample = np.argmax(results[0], axis=1).reshape(-1, 1)
+            
+            waveform = np.hstack([waveform, sample])
 
-            waveform.append(sample)
+        waveform = waveform[:, self.receptive_field:]
+        softmax_result = np.hstack(softmax_result)
+        return waveform, softmax_result
 
-        waveform = np.array(waveform[self.receptive_field:])      
-        return waveform
-
-    def _one_hot_encode(self, input_batch, mode="force"):
+    def _one_hot_encode(self, input_batch):
         with tf.name_scope('one_hot_encode'):
             encoded = tf.one_hot(input_batch, depth=self.quantization_channels) 
-            if mode == "force":
-                encoded = tf.reshape(encoded, [self.batch_size, -1, self.quantization_channels])
-            else:
-                encoded = tf.reshape(encoded, [-1, self.quantization_channels])
+            encoded = tf.reshape(encoded, [self.batch_size, -1, self.quantization_channels])
 
         return encoded
     
@@ -401,8 +445,8 @@ class VQVAE:
         z_q = self.z_q
         z_e = self.z_e
 
-        vq = tf.reduce_mean(tf.norm(tf.stop_gradient(z_e) - z_q, axis=-1) ** 2, axis=[0, 1])
-        commit = tf.reduce_mean(tf.norm(z_e - tf.stop_gradient(z_q), axis=-1) ** 2, axis=[0, 1])
+        vq = tf.reduce_mean(tf.norm(tf.stop_gradient(z_e) - z_q, axis=-1) ** 2)
+        commit = tf.reduce_mean(tf.norm(z_e - tf.stop_gradient(z_q), axis=-1) ** 2)
         
         loss = (recon + vq + beta * commit)
         
@@ -423,11 +467,9 @@ class VQVAE:
 
                 optimizer = tf.train.AdamOptimizer(self.lr)
                 self.train_op = optimizer.apply_gradients(decoder_grads + encoder_grads + embed_grads, global_step=self.global_step)
-
         
         return loss, recon
 
-        
     def load(self, sess, model):
         self.saver.restore(sess, model)
 
@@ -473,7 +515,7 @@ class VoiceConverter:
         self.sess.close()
 
     def get_condition(self, src, gc):
-        n_sample = len(src)
+        n_sample = src.shape[1]
         if n_sample <= self.sample_size:
             n_frame = 1
             n_padding = self.sample_size - n_sample
@@ -481,27 +523,19 @@ class VoiceConverter:
             n_frame = int(math.ceil(float(n_sample) / self.sample_size))
             n_padding = self.sample_size * n_frame - n_sample
 
-        src = np.pad(src, (0, n_padding), 'constant', constant_values=(0, 0))
-        src = src.reshape(-1, 1)
+        src = np.pad(src, ((0, 0), (0, n_padding)), 'constant')
+        src = src.reshape(self.batch_size, -1, 1)
+        
+        assert (src.shape[1] % self.sample_size) == 0
 
-        gcs = [gc] * self.batch_size
-
-        inputs = np.split(src, n_frame)
-
-        inputs = np.hstack(inputs)
-
-        padded_n_frame = np.ceil(float(n_frame) / self.batch_size).astype(np.int32) * self.batch_size
-        n_padding = padded_n_frame - n_frame
-        padding = np.zeros((self.sample_size, n_padding))
-        inputs = np.hstack([inputs, padding])
-        inputs = inputs.T
+        inputs = np.split(src, n_frame, axis=1)
 
         result = []
         for input in inputs:
-            lc = self.session.run(self.lc, feed_dict={self.input_batch: input, self.gc_batch: gcs})
-            result.append(lc.reshape(self.sample_size, -1))
+            lc = self.session.run(self.lc, feed_dict={self.input_batch: input, self.gc_batch: gc})
+            result.append(lc)
 
-        lc = np.vstack(result)
+        lc = np.hstack(result)
 
         return lc
 
@@ -510,20 +544,19 @@ class VoiceConverter:
         if src is None:
             src, _ = librosa.load(file, sr=self.sample_rate, mono=True)
         
-        src = mu_law_numpy(src.reshape(-1))
+        src = mu_law_numpy(src)
 
-        n_samples = len(src)
-        src = src[:n_samples]
+        n_samples = src.shape[1]
 
         a_lc = self.get_condition(src, gc)
 
         a_gc = self.session.run(self.gc, feed_dict={self.gc_batch: gc})
-        a_gc = a_gc.reshape(1, -1)
-
-        waveform = self.model.generate_waveform(self.session, n_samples, a_lc, a_gc, 
-                                                seed=src[0], use_randomness=use_randomness)
-        result = inv_mu_law_numpy(waveform, quantization_channels=self.model.quantization_channels)
-        result = result.reshape(-1)
-        return result
-    
+        a_gc = a_gc.reshape(self.batch_size, -1)
         
+        seed = src[:, 0].reshape(-1, 1)
+        waveform, _ = self.model.generate_waveform(self.session, n_samples, a_lc, a_gc, 
+                                                seed=seed, use_randomness=use_randomness)
+
+        result = inv_mu_law_numpy(waveform, quantization_channels=self.model.quantization_channels)
+        
+        return result
