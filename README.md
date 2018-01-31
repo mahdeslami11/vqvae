@@ -29,6 +29,9 @@ In addition, [librosa](https://github.com/librosa/librosa) must be installed for
 <img src="results/test_source2.png" />
 <img src="results/test_source2_to_type1.png" />
 <img src="results/test_source2_to_type3.png" />
+<img src="results/test_source3.png" />
+<img src="results/test_source3_to_type1.png" />
+<img src="results/test_source3_to_type2.png" />
 
 You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simple vq-vae test</a> and the generated files are on <a href="./results">results</a> folder.
 
