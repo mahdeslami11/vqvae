@@ -36,7 +36,7 @@ In addition, [librosa](https://github.com/librosa/librosa) must be installed for
 You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simple vq-vae test</a> and the generated files are on <a href="./results">results</a> folder.
 
 ## Voice conversion test
-This will be updated soon.
+~~This will be updated soon.~~ Recently, I'm focus on [wavenet project](https://github.com/twidddj/wavenet). After build vocoder, I'll go on this test.
 
 ## References
 - [VQVAE](https://github.com/hiwonjoon/tf-vqvae), a VQVAE for image generation
