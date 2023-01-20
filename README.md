@@ -43,7 +43,7 @@ You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simp
 - [wavenet](https://github.com/ibab/tensorflow-wavenet), a wavenet
 #
 
-Ali Zahedi
+[Ali Zahedi](https://github.com/alixahedi)
 
 Student number:  40012340048010
 
@@ -61,27 +61,25 @@ Using the VQ method allows the  model to circumvent issues of “posterior colla
 #### 2. Innovation
 #
 
-#### 3. Items that have been changed and improved in the source code
-https://github.com/mahdeslami11/vqvae/blob/master/vqvae/AudioReader.py
+#### 3. [Items that have been changed and improved in the source code](https://github.com/mahdeslami11/vqvae/blob/master/vqvae/AudioReader.py)
+
 #
 
 #### 4. Innovation result
 #
 
-#### 5. Main source: 
-https://github.com/twidddj/vqvae
+#### 5. [Main source](https://github.com/twidddj/vqvae) 
 #
 
 #### 6. Student Introduction
-I am Ali Zahedi, a master's student in the field of electronic engineering, majoring in Digital electronic systems, from Islamic Azad University, Science and Research Branch, Tehran, Iran. I am an embedded systems developer and I have been working in this field for about 6 years. You can see my full resume through my LinkedIn.
+I am Ali Zahedi, a master's student in the field of electronic engineering, majoring in Digital electronic systems, from Islamic Azad University, Science and Research Branch, Tehran, Iran. I am an embedded systems developer and I have been working in this field for about 6 years. You can see my full resume through my [LinkedIn](https://www.linkedin.com/in/ali-zahedi-b5a360158).
 #
 
-#### 7. Article Link
-https://github.com/mahdeslami11/vqvae/blob/master/NIPS-2017-neural-discrete-representation-learning-Paper_2.pdf
+#### 7. [Article Link](https://github.com/mahdeslami11/vqvae/blob/master/NIPS-2017-neural-discrete-representation-learning-Paper_2.pdf)
 #
 
 #### 8. Video Link
 #
 
-#### 9. Proposal Link
-https://github.com/mahdeslami11/vqvae/blob/master/Proposal.docx
+#### 9. [Proposal Link](https://github.com/mahdeslami11/vqvae/blob/master/Proposal.docx)
+
