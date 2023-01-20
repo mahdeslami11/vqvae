@@ -58,14 +58,14 @@ Learning useful representations without supervision remains a key challenge in  
 Using the VQ method allows the  model to circumvent issues of “posterior collapse” -— where the latents are ignored  when they are paired with a powerful autoregressive decoder -— typically observed  in the VAE framework. Pairing these representations with an autoregressive prior,  the model can generate high quality images, videos, and speech as well as doing  high quality speaker conversion and unsupervised learning of phonemes, providing  further evidence of the utility of the learnt representations.
 #
 
-#### 2. Innovation
+#### 2. [Innovation](https://github.com/mahdeslami11/vqvae/edit/master/README.md)
 #
 
 #### 3. [Items that have been changed and improved in the source code](https://github.com/mahdeslami11/vqvae/blob/master/vqvae/AudioReader.py)
 
 #
 
-#### 4. Innovation result
+#### 4. [Innovation result](https://github.com/mahdeslami11/vqvae/edit/master/README.md)
 #
 
 #### 5. [Main source](https://github.com/twidddj/vqvae) 
@@ -78,7 +78,7 @@ I am Ali Zahedi, a master's student in the field of electronic engineering, majo
 #### 7. [Article Link](https://github.com/mahdeslami11/vqvae/blob/master/NIPS-2017-neural-discrete-representation-learning-Paper_2.pdf)
 #
 
-#### 8. Video Link
+#### 8. [Video Link](https://drive.google.com/file/d/1MfG7_P5hCMxa1zNLGGV-6SGYX0z3cQQ5/view?usp=sharing)
 #
 
 #### 9. [Proposal Link](https://github.com/mahdeslami11/vqvae/blob/master/Proposal.docx)
