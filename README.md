@@ -76,6 +76,7 @@ I am Ali Zahedi, a master's student in the field of electronic engineering, majo
 #
 
 #### 7. Article Link
+https://github.com/mahdeslami11/vqvae/blob/master/NIPS-2017-neural-discrete-representation-learning-Paper_2.pdf
 #
 
 #### 8. Video Link
