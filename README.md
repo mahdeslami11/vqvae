@@ -42,6 +42,8 @@ You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simp
 - [VQVAE](https://github.com/hiwonjoon/tf-vqvae), a VQVAE for image generation
 - [wavenet](https://github.com/ibab/tensorflow-wavenet), a wavenet
 
+#
+
 Ali Zahedi
 
 Student number:  40012340048010
@@ -49,6 +51,8 @@ Student number:  40012340048010
 Digital signal processing course
 
 Professor Dr. Mahdi Eslami
+
+#
 
 #### 1.Summary 
 
