@@ -42,4 +42,23 @@ You can find more details in <a href="./notebooks/simple vq-vae test.ipynb">simp
 - [VQVAE](https://github.com/hiwonjoon/tf-vqvae), a VQVAE for image generation
 - [wavenet](https://github.com/ibab/tensorflow-wavenet), a wavenet
 
+Ali Zahedi
+Student number:  40012340048010
+Digital signal processing course
+Professor Dr. Mahdi Eslami
+
+#### 1.Summary 
+Learning useful representations without supervision remains a key challenge in  machine learning. Our model, the Vector QuantisedVariational AutoEncoder (VQ-VAE), differs from VAEs in two key ways: the encoder network outputs discrete, rather than continuous, codes; and the prior is learnt rather than static. In order to learn a discrete latent representation, we  incorporate ideas from vector quantisation (VQ).
+Using the VQ method allows the  model to circumvent issues of “posterior collapse” -— where the latents are ignored  when they are paired with a powerful autoregressive decoder -— typically observed  in the VAE framework. Pairing these representations with an autoregressive prior,  the model can generate high quality images, videos, and speech as well as doing  high quality speaker conversion and unsupervised learning of phonemes, providing  further evidence of the utility of the learnt representations.
+#### 2. Innovation
+#### 3. Items that have been changed and improved in the source code
+#### 4. Innovation result
+#### 5. Main source: https://github.com/twidddj/vqvae
+#### 6. Student Introduction
+I am Ali Zahedi, a master's student in the field of electronic engineering, majoring in Digital electronic systems, from Islamic Azad University, Science and Research Branch, Tehran, Iran. I am an embedded systems developer and I have been working in this field for about 6 years. You can see my full resume through my LinkedIn.
+#### 7. Article Link
+#### 8. Video Link
+#### 9. Proposal Link
+
+
 
