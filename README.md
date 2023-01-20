@@ -84,3 +84,4 @@ https://github.com/mahdeslami11/vqvae/blob/master/NIPS-2017-neural-discrete-repr
 #
 
 #### 9. Proposal Link
+https://github.com/mahdeslami11/vqvae/blob/master/Proposal.docx
