@@ -62,6 +62,7 @@ Using the VQ method allows the  model to circumvent issues of “posterior colla
 #
 
 #### 3. Items that have been changed and improved in the source code
+https://github.com/mahdeslami11/vqvae/blob/master/vqvae/AudioReader.py
 #
 
 #### 4. Innovation result
